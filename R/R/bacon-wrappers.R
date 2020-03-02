@@ -99,9 +99,11 @@ MakeBaconDirs <- function(dat = NULL, filename, path,
 #' @export
 #'
 #' @examples
-RunBaconDirs <- function(top.dir.path){
-
-  n.cores <- parallel::detectCores()
+RunBaconDirs <- function(top.dir.path, runname = ""){
+  
+  if (.Platform$OS.type == "unix") {
+    n.cores <- parallel::detectCores()
+    }else{n.cores <- 1}
 
   # Get list of directories inside top-level dir
   dirs <- list.dirs(top.dir.path, full.names = FALSE, recursive = FALSE)
@@ -135,6 +137,7 @@ RunBaconDirs <- function(top.dir.path){
            acc.mean = acc.mean, thick = thick,
            # suppress interactive questions
            suggest = FALSE, ask = FALSE,
+           runname = runname, remember = FALSE,
            plot.pdf = TRUE, suppress.plots = TRUE,
            verbose = FALSE)
 
