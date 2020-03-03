@@ -90,6 +90,31 @@ MakeBaconDirs <- function(dat = NULL, filename, path,
   })
 }
 
+
+CreateParametersFile <- function(d.min, d.max, d.by = 1,
+                                 thick,
+                                 acc.mean, acc.shape,
+                                 mem.mean, mem.strength){
+
+  par.df <- data.frame(d.min = d.min,
+             d.max = d.max,
+             d.by = d.by,
+             thick = thick,
+             acc.mean = acc.mean,
+             acc.shape = acc.shape,
+             mem.mean = mem.mean,
+             mem.strength = mem.strength)
+
+  write.csv(par.df, file = "parameters.csv", header = TRUE, row.names = FALSE,
+            quote = FALSE)
+
+
+}
+
+
+
+
+
 #' Run rbacon::Bacon for data in a set of directories
 #'
 #' @param top.dir.path Top level directory under which are multiple directories
@@ -100,7 +125,7 @@ MakeBaconDirs <- function(dat = NULL, filename, path,
 #'
 #' @examples
 RunBaconDirs <- function(top.dir.path, runname = ""){
-  
+
   if (.Platform$OS.type == "unix") {
     n.cores <- parallel::detectCores()
     }else{n.cores <- 1}
@@ -130,7 +155,7 @@ RunBaconDirs <- function(top.dir.path, runname = ""){
     core.length <- diff(range(dat$depth))
 
     # set layer thickness to a fraction of median depth step
-    thick = geo.mean.d.depth / 1
+    thick = geo.mean.d.depth / 3
 
     # call Bacon
     Bacon2(core = i, coredir = top.dir.path,
