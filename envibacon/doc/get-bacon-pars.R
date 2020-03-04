@@ -163,3 +163,9 @@ terr.14C.bacon.pars <- pollen.depths.2 %>%
 
 write.csv(terr.14C.bacon.pars, file = "inst/extdata/terr.14C.bacon.pars.csv",
           row.names = FALSE, quote = FALSE)
+
+pollen.depths.2 %>%
+  filter(n.dates > 9) %>%
+  filter(K < 3*n.dates) %>%
+  select(DataName, K, n.dates)
+

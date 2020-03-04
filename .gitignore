@@ -5,3 +5,5 @@
 
 *.Rproj
 .DS_Store
+
+envibacon/inst/extdata/terr_agemodel_data/
