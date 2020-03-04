@@ -4,7 +4,7 @@
 \alias{RunBaconDirs}
 \title{Run rbacon::Bacon for data in a set of directories}
 \usage{
-RunBaconDirs(top.dir.path, runname = "")
+RunBaconDirs(top.dir.path, runname = "", frac.cores = 1/2)
 }
 \arguments{
 \item{top.dir.path}{Top level directory under which are multiple directories

@@ -91,26 +91,29 @@ MakeBaconDirs <- function(dat = NULL, filename, path,
 }
 
 
-CreateParametersFile <- function(d.min, d.max, d.by = 1,
-                                 thick,
-                                 acc.mean, acc.shape,
-                                 mem.mean, mem.strength){
+CreateParametersFiles <- function(top.dir.path, pars.df){
 
-  par.df <- data.frame(d.min = d.min,
-             d.max = d.max,
-             d.by = d.by,
-             thick = thick,
-             acc.mean = acc.mean,
-             acc.shape = acc.shape,
-             mem.mean = mem.mean,
-             mem.strength = mem.strength)
+  # Get list of directories inside top-level dir
+  dirs <- list.dirs(top.dir.path, full.names = FALSE, recursive = FALSE)
 
-  write.csv(par.df, file = "parameters.csv", header = TRUE, row.names = FALSE,
-            quote = FALSE)
+  dir.paths <- list.dirs(top.dir.path, full.names = TRUE, recursive = FALSE)
 
+  pars.present <- dirs %in% pars.df$DataName
+
+  if (any(pars.present == FALSE))  stop(paste0("parameters missing for ", dirs[pars.present == FALSE]))
+
+
+  lapply(1:length(dirs), function(i){
+
+    pars <- subset(pars.df, pars.df$DataName == dirs[[i]])
+
+    write.csv(pars,
+              file = paste0(dir.paths[i], "/", "bacon_pars", ".csv"),
+              row.names = FALSE, quote = FALSE)
+
+    })
 
 }
-
 
 
 
@@ -124,10 +127,11 @@ CreateParametersFile <- function(d.min, d.max, d.by = 1,
 #' @export
 #'
 #' @examples
-RunBaconDirs <- function(top.dir.path, runname = ""){
+RunBaconDirs <- function(top.dir.path, runname = "", frac.cores = 0.5){
 
   if (.Platform$OS.type == "unix") {
-    n.cores <- parallel::detectCores()
+    n.cores.available <- parallel::detectCores()
+    n.cores <- ceiling(n.cores.available * frac.cores)
     }else{n.cores <- 1}
 
   # Get list of directories inside top-level dir
@@ -143,23 +147,25 @@ RunBaconDirs <- function(top.dir.path, runname = ""){
 
     dat <- read.csv(paste0(top.dir.path, i, "/", i, ".csv"))
 
+    pars <- read.csv(paste0(top.dir.path, i, "/", "bacon_pars", ".csv"))
 
-    # estimate mean sediment accumulation rate
-    # use simple linear regression
-    lm1 <- lm(age~depth, data = dat)
-    acc.mean <- coef(lm1)[2]
-
-    # calculate mean depth step and total core length to use for
-    # setting a good layer thickness
-    geo.mean.d.depth <- (mean(sqrt(diff(sort(dat$depth)))))^2
-    core.length <- diff(range(dat$depth))
-
-    # set layer thickness to a fraction of median depth step
-    thick = geo.mean.d.depth / 3
+    # # estimate mean sediment accumulation rate
+    # # use simple linear regression
+    # lm1 <- lm(age~depth, data = dat)
+    # acc.mean <- coef(lm1)[2]
+    #
+    # # calculate mean depth step and total core length to use for
+    # # setting a good layer thickness
+    # geo.mean.d.depth <- (mean(sqrt(diff(sort(dat$depth)))))^2
+    # core.length <- diff(range(dat$depth))
+    #
+    # # set layer thickness to a fraction of median depth step
+    # thick = geo.mean.d.depth / 3
 
     # call Bacon
     Bacon2(core = i, coredir = top.dir.path,
-           acc.mean = acc.mean, thick = thick,
+           d.min = pars$d.min, d.max = pars$d.max, d.by = pars$d.by,
+           acc.mean = pars$acc.mean, thick = pars$thick,
            # suppress interactive questions
            suggest = FALSE, ask = FALSE,
            runname = runname, remember = FALSE,
