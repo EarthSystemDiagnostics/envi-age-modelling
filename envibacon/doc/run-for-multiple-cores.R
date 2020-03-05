@@ -68,10 +68,9 @@ CreateParametersFiles("inst/extdata/terr_14C_min10_dates-2020.03.04_15-19-42/", 
 #
 # scp -r "inst/extdata/terr_14C_min10_dates-2020.03.04_15-19-42/" adolman@linux4.awi-potsdam.de:rdata
 
-devtools::install_github("earthsystemdiagnostics/envi-age-modelling/envibacon")
+#devtools::install_github("earthsystemdiagnostics/envi-age-modelling/envibacon")
 
-RunBaconDirs("rdata/terr_14C_min10_dates-2020.03.04_15-19-42/",
-             runname = "")
+#RunBaconDirs("rdata/terr_14C_min10_dates-2020.03.04_15-19-42/", runname = "")
 
 
 

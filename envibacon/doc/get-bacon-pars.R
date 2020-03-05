@@ -2,7 +2,7 @@
 library(tidyverse)
 library(lme4)
 
-all.terr.dat <- readr::read_csv2("inst/extdata/Dating_Data.csv") %>%
+all.terr.dat <- readr::read_csv2("inst/extdata/terr_agemodel_data/Dating_Data.csv") %>%
   filter(complete.cases(age, depth, e.older)) %>%
   mutate(sigma.age = e.older)
 
@@ -161,7 +161,7 @@ terr.14C.bacon.pars <- pollen.depths.2 %>%
   select(DataName, min.depth, max.depth, min.14C.depth, max.14C.depth, yrs_per_cm, n.dates) %>%
   mutate(yrs_per_cm = yrs_per_cm)
 
-write.csv(terr.14C.bacon.pars, file = "inst/extdata/terr.14C.bacon.pars.csv",
+write.csv(terr.14C.bacon.pars, file = "inst/extdata/terr_agemodel_data/terr.14C.bacon.pars.csv",
           row.names = FALSE, quote = FALSE)
 
 pollen.depths.2 %>%
