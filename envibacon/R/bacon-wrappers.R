@@ -140,27 +140,11 @@ RunBaconDirs <- function(top.dir.path, runname = "", frac.cores = 0.5){
   out <- parallel::mclapply(dirs, function(i) {
 
 
-    # read in the data so that Bacon parameters can be calculated
-
-    # we can set more parameters here, like the depths to be interpolated at the
-    # end and the start and end depths
-
+    # read in dates
     dat <- read.csv(paste0(top.dir.path, i, "/", i, ".csv"))
-
+    
+    # read in parameters
     pars <- read.csv(paste0(top.dir.path, i, "/", "bacon_pars", ".csv"))
-
-    # # estimate mean sediment accumulation rate
-    # # use simple linear regression
-    # lm1 <- lm(age~depth, data = dat)
-    # acc.mean <- coef(lm1)[2]
-    #
-    # # calculate mean depth step and total core length to use for
-    # # setting a good layer thickness
-    # geo.mean.d.depth <- (mean(sqrt(diff(sort(dat$depth)))))^2
-    # core.length <- diff(range(dat$depth))
-    #
-    # # set layer thickness to a fraction of median depth step
-    # thick = geo.mean.d.depth / 3
 
     # call Bacon
     Bacon2(core = i, coredir = top.dir.path,
@@ -177,3 +161,180 @@ RunBaconDirs <- function(top.dir.path, runname = "", frac.cores = 0.5){
   }, mc.cores = n.cores, mc.preschedule = FALSE)
   return(out)
 }
+
+
+
+AggregateSummaryAgeModels <- function(top.dir.path){
+  
+  # Get list of directories inside top-level dir
+  dirs <- list.dirs(top.dir.path, full.names = FALSE, recursive = FALSE)
+  paths <- list.dirs(top.dir.path, full.names = TRUE, recursive = FALSE)
+  
+  #browser()
+  
+  fls <- lapply(paths, function(i) {
+    
+    ages.flnm <- Sys.glob(file.path(i, "*ages.txt"))
+    #print(ages.flnm)
+
+    if (identical(ages.flnm, character(0)) == FALSE){
+      ages.df <- read.delim(ages.flnm)
+      
+      pars.df <- read.csv(file.path(i, "bacon_pars.csv"))
+      
+      cbind(pars.df, ages.df)
+    }else if (identical(ages.flnm, character(0))){
+      
+      df.null <- data.frame(
+        depth = NA, min = NA, max = NA, median = NA, mean = NA
+      )
+      pars.df <- read.csv(file.path(i, "bacon_pars.csv"))
+      
+      cbind(pars.df, df.null)
+      
+      }
+    
+  })
+  df <- do.call(rbind.data.frame, fls)
+  
+  return(df)
+}
+
+# tmp <- AggregateAgeModels("inst/extdata/terr_14C_min10_dates-2020.03.04_15-19-42/") %>% 
+#   tbl_df()
+# 
+# tmp %>% 
+#   filter(DataName %in% sample(unique(DataName), 5)) %>% 
+#   ggplot(aes(x = depth, y = mean, colour = DataName)) +
+#   geom_ribbon(aes(ymax = max, ymin = min, fill = DataName), colour = NA, alpha = 0.25) +
+#   geom_line() +
+#   geom_line(aes(y = median), linetype = 2)
+
+rump1 <- read.table("inst/extdata/test-subset/AE3/AE3_62.out", header = FALSE)
+dim(rump1)
+
+# last col is loglik
+plot(rump1[,65], type = "l")
+
+# penultimate is memory
+plot(rump1[,64], type = "l")
+hist(rump1[,64]^(1/9.24), type = "l")
+
+
+#w = R^(delta_c)
+
+tb[,2:35] <- tb[,2:35]*31*0.75
+
+tb2 <- tb %>% 
+  as.matrix() %>% 
+  apply(., 1, cumsum) %>% 
+  as_tibble() %>% 
+  mutate(section = 1:n()) %>% 
+  select(section, everything()) %>% 
+  gather(iter, value, -section) %>% 
+  group_by(section) %>% 
+  mutate(iter = 1:n())
+
+
+
+tb2 %>% 
+  filter(iter < 1000) %>% 
+  ggplot(aes(x = section, y = value, group = iter)) +
+  geom_line(alpha = 0.015)
+
+
+rump.sub <- rump1[1:1000, ]
+
+colMeans(rump.sub[,])
+
+
+m <- matrix(1:9, ncol = 3)
+
+m
+m * c(1, 2, 3)
+
+.StackIterations <- function(x){
+  x <- as.data.frame(x, stringsAsFactors = FALSE)
+  n.row <- nrow(x)
+  #x$depth.index <- 1:nrow(x)
+  x <- stack(x, stringsAsFactors = FALSE)
+  x$depth.index <- (1:n.row) -1
+  x
+}
+
+ConstructAgeModels <- function(bacon.rump, pars){
+  
+  n.col <- ncol(bacon.rump)
+  log.lik <- bacon.rump[, n.col]
+  
+  #scaled.inov <- bacon.rump[, 2:(n.col - 2)]
+  bacon.rump[, 2:(n.col - 2)] <- bacon.rump[, 2:(n.col - 2)] * pars$thick
+  
+  age.mods <- apply(bacon.rump[, 1:(n.col - 2)], 1, cumsum)
+  
+  age.mods <- .StackIterations(age.mods)
+  
+  age.mods$depth <- pars$d.min + age.mods$depth.index * pars$thick
+  
+  age.mods <- age.mods[, c("ind", "depth", "values")]
+  names(age.mods) <- c("iter", "depth", "age")
+  
+  return(age.mods)
+  
+  }
+
+pars <- read.csv("inst/extdata/test-subset/AE3/bacon_pars.csv", stringsAsFactors = FALSE)
+
+#rump.sub <- rump1[1:13, ]
+
+tmp2 <- ConstructAgeModels(rump1, pars) %>% 
+  tbl_df()
+
+tmp2 %>% 
+  ggplot(aes(x = depth, y = age, group = iter)) +
+  geom_line() +
+  expand_limits(x = 0, y = 0)
+
+
+AggregatePosteriorAgeModels <- function(top.dir.path){
+  
+  # Get list of directories inside top-level dir
+  dirs <- list.dirs(top.dir.path, full.names = FALSE, recursive = FALSE)
+  paths <- list.dirs(top.dir.path, full.names = TRUE, recursive = FALSE)
+  
+  #browser()
+  
+  fls <- lapply(paths, function(i) {
+    
+    posterior.flnm <- Sys.glob(file.path(i, "*.out"))
+    #print(ages.flnm)
+    
+    if (identical(posterior.flnm, character(0)) == FALSE){
+      posterior <- read.table(posterior.flnm, header = FALSE)
+      
+      pars.df <- read.csv(file.path(i, "bacon_pars.csv"))
+      
+      age.mods <- ConstructAgeModels(posterior, pars.df)
+      cbind(pars, age.mods)
+      
+    }else if (identical(posterior.flnm, character(0))){
+      
+      df.null <- data.frame(
+        iter = NA, depth = NA, age = NA
+      )
+      pars.df <- read.csv(file.path(i, "bacon_pars.csv"))
+      
+      cbind(pars.df, df.null)
+      
+    }
+    
+  })
+  df <- do.call(rbind.data.frame, fls)
+  
+  return(df)
+}
+
+
+tmp3 <- AggregatePosteriorAgeModels("inst/extdata/test-subset/")
+
+
