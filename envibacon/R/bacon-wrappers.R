@@ -116,8 +116,6 @@ CreateParametersFiles <- function(top.dir.path, pars.df){
 }
 
 
-
-
 #' Run rbacon::Bacon for data in a set of directories
 #'
 #' @param top.dir.path Top level directory under which are multiple directories
@@ -164,6 +162,23 @@ RunBaconDirs <- function(top.dir.path, runname = "", frac.cores = 0.5){
 
 
 
+#' Title
+#'
+#' @param top.dir.path 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' summary.age.mods <- AggregateSummaryAgeModels("inst/extdata/terr_14C_min10_dates-2020.03.04_15-19-42/") %>%
+#'   tbl_df()
+#' 
+#' summary.age.mods %>%
+#'   filter(DataName %in% sample(unique(DataName), 5)) %>%
+#'   ggplot(aes(x = depth, y = mean, colour = DataName)) +
+#'   geom_ribbon(aes(ymax = max, ymin = min, fill = DataName), colour = NA, alpha = 0.25) +
+#'   geom_line() +
+#'   geom_line(aes(y = median), linetype = 2)
 AggregateSummaryAgeModels <- function(top.dir.path){
   
   # Get list of directories inside top-level dir
@@ -200,100 +215,58 @@ AggregateSummaryAgeModels <- function(top.dir.path){
   return(df)
 }
 
-# tmp <- AggregateAgeModels("inst/extdata/terr_14C_min10_dates-2020.03.04_15-19-42/") %>% 
-#   tbl_df()
-# 
-# tmp %>% 
-#   filter(DataName %in% sample(unique(DataName), 5)) %>% 
-#   ggplot(aes(x = depth, y = mean, colour = DataName)) +
-#   geom_ribbon(aes(ymax = max, ymin = min, fill = DataName), colour = NA, alpha = 0.25) +
-#   geom_line() +
-#   geom_line(aes(y = median), linetype = 2)
-
-rump1 <- read.table("inst/extdata/test-subset/AE3/AE3_62.out", header = FALSE)
-dim(rump1)
-
-# last col is loglik
-plot(rump1[,65], type = "l")
-
-# penultimate is memory
-plot(rump1[,64], type = "l")
-hist(rump1[,64]^(1/9.24), type = "l")
-
-
-#w = R^(delta_c)
-
-tb[,2:35] <- tb[,2:35]*31*0.75
-
-tb2 <- tb %>% 
-  as.matrix() %>% 
-  apply(., 1, cumsum) %>% 
-  as_tibble() %>% 
-  mutate(section = 1:n()) %>% 
-  select(section, everything()) %>% 
-  gather(iter, value, -section) %>% 
-  group_by(section) %>% 
-  mutate(iter = 1:n())
-
-
-
-tb2 %>% 
-  filter(iter < 1000) %>% 
-  ggplot(aes(x = section, y = value, group = iter)) +
-  geom_line(alpha = 0.015)
-
-
-rump.sub <- rump1[1:1000, ]
-
-colMeans(rump.sub[,])
-
-
-m <- matrix(1:9, ncol = 3)
-
-m
-m * c(1, 2, 3)
 
 .StackIterations <- function(x){
   x <- as.data.frame(x, stringsAsFactors = FALSE)
   n.row <- nrow(x)
-  #x$depth.index <- 1:nrow(x)
+ 
   x <- stack(x, stringsAsFactors = FALSE)
   x$depth.index <- (1:n.row) -1
   x
 }
 
-ConstructAgeModels <- function(bacon.rump, pars){
+#' Title
+#'
+#' @param bacon.posterior 
+#' @param pars 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' posterior <- read.table("inst/extdata/test-subset/AE3/AE3_62.out", header = FALSE)
+#' pars <- read.csv("inst/extdata/test-subset/AE3/bacon_pars.csv", stringsAsFactors = FALSE)
+#' 
+#' 
+#' age.mods <- ConstructAgeModels(posterior, pars) %>%
+#'   as_tibble()
+#' 
+#' age.mods %>%
+#'   filter(iter %in% sample(unique(iter), 100)) %>%
+#'   ggplot(aes(x = depth, y = age, group = iter)) +
+#'   geom_line(alpha = 0.1) +
+#'   expand_limits(x = 0, y = 0)
+ConstructAgeModels <- function(bacon.posterior, pars){
   
-  n.col <- ncol(bacon.rump)
-  log.lik <- bacon.rump[, n.col]
+  n.col <- ncol(bacon.posterior)
+  log.lik <- bacon.posterior[, n.col]
   
-  #scaled.inov <- bacon.rump[, 2:(n.col - 2)]
-  bacon.rump[, 2:(n.col - 2)] <- bacon.rump[, 2:(n.col - 2)] * pars$thick
   
-  age.mods <- apply(bacon.rump[, 1:(n.col - 2)], 1, cumsum)
+  bacon.posterior[, 2:(n.col - 2)] <- bacon.posterior[, 2:(n.col - 2)] * pars$thick
   
+  age.mods <- apply(bacon.posterior[, 1:(n.col - 2)], 1, cumsum)
+ 
   age.mods <- .StackIterations(age.mods)
   
   age.mods$depth <- pars$d.min + age.mods$depth.index * pars$thick
   
   age.mods <- age.mods[, c("ind", "depth", "values")]
-  names(age.mods) <- c("iter", "depth", "age")
+  names(age.mods) <- c("iter", "depth", "age") 
   
   return(age.mods)
   
   }
 
-pars <- read.csv("inst/extdata/test-subset/AE3/bacon_pars.csv", stringsAsFactors = FALSE)
-
-#rump.sub <- rump1[1:13, ]
-
-tmp2 <- ConstructAgeModels(rump1, pars) %>% 
-  tbl_df()
-
-tmp2 %>% 
-  ggplot(aes(x = depth, y = age, group = iter)) +
-  geom_line() +
-  expand_limits(x = 0, y = 0)
 
 
 AggregatePosteriorAgeModels <- function(top.dir.path){
@@ -333,8 +306,5 @@ AggregatePosteriorAgeModels <- function(top.dir.path){
   
   return(df)
 }
-
-
-tmp3 <- AggregatePosteriorAgeModels("inst/extdata/test-subset/")
 
 

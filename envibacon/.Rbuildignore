@@ -1,2 +1,5 @@
 ^envibacon\.Rproj$
 ^\.Rproj\.user$
+
+^inst/working-data$
+^working-data$
