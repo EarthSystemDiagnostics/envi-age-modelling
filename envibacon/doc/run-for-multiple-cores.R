@@ -5,7 +5,7 @@ library(envibacon)
 
 # load and filter data -----
 
-all.terr.dat <- readr::read_csv2("inst/extdata/Dating_Data.csv") %>%
+all.terr.dat <- readr::read_csv2("../working-data/terr_agemodel_data/Dating_Data.csv") %>%
   filter(complete.cases(age, depth, e.older)) %>%
   mutate(sigma.age = e.older)
 
@@ -38,7 +38,7 @@ terr.14C.min10.dates <- all.terr.14C.dat.2 %>%
 
 ## Get parameters for the runs
 
-pars.df <- read.csv("inst/extdata/terr.14C.bacon.pars.csv", stringsAsFactors = FALSE)
+pars.df <- read.csv("../working-data/terr_agemodel_data/terr.14C.bacon.pars.csv", stringsAsFactors = FALSE)
 
 pars.df <- pars.df %>%
   mutate(thick = round(100 / yrs_per_cm, 2),
@@ -51,6 +51,7 @@ pars.df <- pars.df %>%
   filter(DataName %in% terr.14C.min10.dates$DataName)
 
 hist(pars.df$K)
+
 
 # Some will take a long time.
 

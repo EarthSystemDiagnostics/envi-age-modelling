@@ -2,7 +2,7 @@
 library(tidyverse)
 library(lme4)
 
-all.terr.dat <- readr::read_csv2("inst/extdata/terr_agemodel_data/Dating_Data.csv") %>%
+all.terr.dat <- readr::read_csv2("../working-data/terr_agemodel_data/Dating_Data.csv") %>%
   filter(complete.cases(age, depth, e.older)) %>%
   mutate(sigma.age = e.older)
 
@@ -11,7 +11,6 @@ all.terr.c14.dat <- all.terr.dat %>%
   group_by(DataName) %>%
   mutate(n.dates = n()) %>%
   ungroup()
-
 
 # Add a depth and date at surface
 surface.ages <- all.terr.c14.dat %>%
@@ -168,4 +167,33 @@ pollen.depths.2 %>%
   filter(n.dates > 9) %>%
   filter(K < 3*n.dates) %>%
   select(DataName, K, n.dates)
+
+
+
+terr.14C.bacon.pars <- read.csv("../working-data/terr_agemodel_data/terr.14C.bacon.pars.csv")
+
+
+terr.14C.bacon.pars.2 <- terr.14C.bacon.pars %>%  mutate(thick = round(100 / yrs_per_cm, 2),
+                          acc.mean = round(yrs_per_cm, 2),
+                          d.by = thick,
+                          K = (max.depth - min.depth) / thick) %>%
+  rename(d.min = min.depth, d.max = max.depth) %>%
+  tbl_df() %>%
+  select(DataName, d.min, d.max, d.by, thick, acc.mean, K, n.dates) %>%
+  filter(DataName %in% terr.14C.min10.dates$DataName) %>%
+  mutate(K.per.n = K / n.dates) %>%
+  arrange(desc(K))
+
+hist(terr.14C.bacon.pars.2$K.per.n)
+
+terr.14C.bacon.pars.2 %>%
+  ggplot(aes(x = K, y = thick)) +
+  geom_point()
+
+terr.14C.bacon.pars.2 %>%
+  filter(K.per.n > 10) %>%
+  ggplot(aes(x = K)) +
+  geom_histogram(bins = 100) +
+  expand_limits(x = 0)
+
 
