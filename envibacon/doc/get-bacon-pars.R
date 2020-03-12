@@ -29,24 +29,6 @@ all.terr.c14.dat.2 <- bind_rows(all.terr.c14.dat, surface.ages) %>%
   ungroup()
 
 
-# all.terr.c14.sed.rates.lm <- all.terr.c14.dat.2 %>%
-#   #filter(added.surface == FALSE) %>%
-#   group_by(DataName, n.dates) %>%
-#   do({
-#     tryCatch({
-#       #lm1 <- MASS::rlm(age~depth, data = .)
-#       lm1 <- lm(age~depth, data = .)
-#       #broom::tidy(lm1)
-#
-#       data.frame(yrs_per_cm = coef(lm1)[2])
-#     },
-#     error = function(e) {data.frame(yrs_per_cm = NA)}
-#     )
-#   }) %>%
-#   mutate(
-#     cm_per_kyr = 1000 * 1/yrs_per_cm
-#   )
-
 
 ## Estimate mean sedimentation rate for each core to use as acc.mean in prior -----
 
@@ -128,72 +110,45 @@ hist(pollen.depths$yrs.older, 200)
 pollen.depths.2 <-  pollen.depths %>%
   group_by(DataName) %>%
   mutate(min.14C.depth = 0) %>%
-  mutate(max.depth = max(c(max_pollen, max.14C.depth), na.rm = TRUE),
-         min.depth = min(c(min_pollen, min.14C.depth), na.rm = TRUE),
+  mutate(max.depth = ceiling(max(c(max_pollen, max.14C.depth), na.rm = TRUE)),
+         min.depth = floor(min(c(min_pollen, min.14C.depth), na.rm = TRUE)),
          age.mod.length = max.depth - min.depth,
          thick = 100 / yrs_per_cm,
-         K = age.mod.length / thick,
-         K.older = ifelse(yrs.older > 0, yrs.older / thick, 0),
-         K.younger = ifelse(yrs.younger > 0, yrs.younger / thick, 0),
-         p.K.ex = (K.older + K.younger) / K)
+         K = age.mod.length / thick)
 
 
-pollen.depths.2 %>%
-  #filter(n.dates > 9) %>%
-  select(DataName, starts_with("K"), p.K.ex) %>%
-  gather(var, val, -DataName) %>%
-  #filter(val > 0) %>%
-  ggplot(aes(x = val)) +
-  geom_histogram() +
-  facet_wrap(~var, scales = "free")
-
-pollen.depths.2 %>%
-  filter(n.dates > 9) %>%
-  select(DataName, starts_with("K"), p.K.ex) %>%
-  gather(var, val, -DataName) %>%
- # filter(val > 0) %>%
-  ggplot(aes(x = val)) +
-  geom_histogram() +
-  facet_wrap(~var, scales = "free")
-
+# Put some sensible limits on K and thick and K.per.n.dates
 terr.14C.bacon.pars <- pollen.depths.2 %>%
-  select(DataName, min.depth, max.depth, min.14C.depth, max.14C.depth, yrs_per_cm, n.dates) %>%
-  mutate(yrs_per_cm = yrs_per_cm)
-
-write.csv(terr.14C.bacon.pars, file = "inst/extdata/terr_agemodel_data/terr.14C.bacon.pars.csv",
-          row.names = FALSE, quote = FALSE)
-
-pollen.depths.2 %>%
-  filter(n.dates > 9) %>%
-  filter(K < 3*n.dates) %>%
-  select(DataName, K, n.dates)
-
-
-
-terr.14C.bacon.pars <- read.csv("../working-data/terr_agemodel_data/terr.14C.bacon.pars.csv")
-
-
-terr.14C.bacon.pars.2 <- terr.14C.bacon.pars %>%  mutate(thick = round(100 / yrs_per_cm, 2),
-                          acc.mean = round(yrs_per_cm, 2),
-                          d.by = thick,
-                          K = (max.depth - min.depth) / thick) %>%
+  mutate(d.by = thick,
+         acc.mean = round(yrs_per_cm, 2)) %>%
   rename(d.min = min.depth, d.max = max.depth) %>%
-  tbl_df() %>%
-  select(DataName, d.min, d.max, d.by, thick, acc.mean, K, n.dates) %>%
-  filter(DataName %in% terr.14C.min10.dates$DataName) %>%
-  mutate(K.per.n = K / n.dates) %>%
-  arrange(desc(K))
+  # mutate(yrs.per.slice = thick * acc.mean)
+  mutate(K = ifelse(K > 200, 200, K),
+         thick = d.max / K,
+         K.per.n = K / n.dates) %>%
+  mutate(thick = ifelse(thick > 20, 20, thick),
+         K = d.max / thick,
+         K.per.n = K / n.dates) %>%
+  mutate(K.per.n = ifelse(K.per.n < 3, 3, K.per.n),
+         K = K.per.n * n.dates,
+         thick = d.max / K) %>%
+  mutate(thick = ifelse(thick > 20, 20, thick),
+         K = d.max / thick,
+         K.per.n = K / n.dates,
+         yrs.per.slice = thick * acc.mean)
 
-hist(terr.14C.bacon.pars.2$K.per.n)
+hist(subset(terr.14C.bacon.pars, terr.14C.bacon.pars$n.dates > 8)$K)
 
-terr.14C.bacon.pars.2 %>%
-  ggplot(aes(x = K, y = thick)) +
-  geom_point()
 
-terr.14C.bacon.pars.2 %>%
-  filter(K.per.n > 10) %>%
-  ggplot(aes(x = K)) +
-  geom_histogram(bins = 100) +
-  expand_limits(x = 0)
+terr.14C.bacon.pars.2 <- terr.14C.bacon.pars %>%
+  mutate(thick = round(thick, 2),
+         acc.mean = round(yrs_per_cm, 2),
+         d.by = thick,
+         K = round(K)) %>%
+  select(DataName, d.min, d.max, d.by, thick, acc.mean, n.dates, K) %>%
+  mutate(acc.shape = 1.5, mem.strength = 4, mem.mean = 0.7)
 
+
+write.csv(terr.14C.bacon.pars.2, file = "../working-data/terr_agemodel_data/terr.14C.bacon.pars.2.csv",
+          row.names = FALSE, quote = FALSE)
 

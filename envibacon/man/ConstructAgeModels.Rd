@@ -7,8 +7,6 @@
 ConstructAgeModels(bacon.posterior, pars)
 }
 \arguments{
-\item{bacon.posterior}{}
-
 \item{pars}{}
 }
 \value{
