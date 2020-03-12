@@ -217,6 +217,64 @@ AggregateSummaryAgeModels <- function(top.dir.path){
   return(df)
 }
 
+AggregateAgeModelsAtDepths <- function(top.dir.path){
+
+
+  # Get list of directories inside top-level dir
+  dirs <- list.dirs(top.dir.path, full.names = FALSE, recursive = FALSE)
+  paths <- list.dirs(top.dir.path, full.names = TRUE, recursive = FALSE)
+
+
+  fls <- lapply(paths, function(i) {
+
+    ages.flnm <- Sys.glob(file.path(i, "*ages.txt"))
+    #print(ages.flnm)
+    dates.flnm <- file.path(i, paste0(basename(i), ".csv"))
+
+    if (identical(ages.flnm, character(0)) == FALSE){
+
+      ages.df <- read.delim(ages.flnm)
+      dates.df <- read.csv(dates.flnm)
+
+      interps <- GetAgeModAtDepths(ages.df, dates.df$depth)
+      #interps$DataName <- basename(i)
+
+      cbind(DataName = basename(i), interps)
+
+    }else if (identical(ages.flnm, character(0))){
+
+      df.null <- data.frame(
+        min = NA, max = NA, median = NA, mean = NA
+      )
+
+      dates.df <- read.csv(dates.flnm)
+
+      cbind(DataName = basename(i), depth = dates.df$depth, df.null)
+
+    }
+
+  })
+
+  df <- do.call(rbind.data.frame, fls)
+
+  return(df)
+}
+
+
+GetAgeModAtDepths <- function(age.mod, depth){
+
+  interps <- apply(age.mod[,2:5], 2, function(i) {
+    approx(x = age.mod$depth, y = i, xout = depth)$y
+  })
+
+  as.data.frame(cbind(depth, interps))
+}
+
+#GetAgeModAtDepths(tmp.age, tmp.depths$depth)
+
+#AggregateAgeModelsAtDepths("../working-data/terr_agemodel_data/sample_data_lakes-2020.03.04_14-53-10/")
+
+
 
 .StackIterations <- function(x){
   x <- as.data.frame(x, stringsAsFactors = FALSE)
@@ -270,17 +328,6 @@ ConstructAgeModels <- function(bacon.posterior, pars){
   }
 
 
-
-GetAgeModAtDepths <- function(age.mod, depths){
-
-  interps <- apply(age.mod[,2:5], 2, function(i) {
-    approx(x = age.mod$depth, y = i, xout = depths)$y
-    })
-
-  cbind(depths, interps)
-}
-
-#GetAgeModAtDepths(tmp.age, tmp.depths$depth)
 
 
 AggregatePosteriorAgeModels <- function(top.dir.path){
