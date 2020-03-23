@@ -62,9 +62,12 @@ CreateParametersFiles("../working-data/terr_agemodel_data/terr_14C_min10_dates-2
 #
 # scp -r "../working-data/terr_agemodel_data/terr_14C_min10_dates-2020.03.12_12-11-47/" adolman@linux4.awi-potsdam.de:rdata
 
+# scp -r adolman@linux4.awi-potsdam.de:rdata/terr_14C_min10_dates-2020.03.12_12-11-47 "../working-data/terr_agemodel_data/terr_14C_min10_dates-2020.03.12_12-11-47_out/"
+
+
 #devtools::install_github("earthsystemdiagnostics/envi-age-modelling/envibacon")
 
-#RunBaconDirs("rdata/terr_14C_min10_dates-2020.03.04_15-19-42/", runname = "")
+#RunBaconDirs("rdata/terr_14C_min10_dates-2020.03.12_12-11-47/", runname = "")
 
 
 
