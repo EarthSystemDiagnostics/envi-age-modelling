@@ -6,7 +6,7 @@
 \usage{
 MakeBaconDirs(
   dat = NULL,
-  filename,
+  filename = NULL,
   path,
   suffix = c("date", "date.time", "none"),
   site.id,

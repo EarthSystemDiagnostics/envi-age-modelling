@@ -18,9 +18,39 @@
 #' @export
 #'
 #' @examples
-MakeBaconDirs <- function(dat = NULL, filename, path,
+MakeBaconDirs <- function(dat = NULL, filename = NULL, path,
                               suffix = c("date", "date.time", "none"),
                               site.id, sample.id, age, age.err, depth){
+  
+  if (is.null(dat) == FALSE & is.null(filename) == FALSE) {
+    stop("Only one of dat or filename should be specified")
+  }
+  
+  if (is.null(dat) & is.null(filename)) {
+    stop("One of dat or filename must be specified")
+  }
+  
+  # create top-level folder name
+  suffix <- match.arg(suffix)
+  suff <- switch(suffix,
+                 none = "",
+                 date = paste0("-", Sys.Date()),
+                 date.time = paste0("-", format(Sys.time(), "%Y.%m.%d_%H-%M-%S"))
+  )
+  
+  if (is.null(dat)){
+    folder.name <- paste0(
+      # remove suffice from filename
+      strsplit(filename, split = ".", fixed = TRUE)[[1]][1],
+      # add current date and time
+      #"-", format(Sys.time(), "%Y.%m.%d_%H-%M-%S")
+      suff
+    )
+  } else {
+    
+    folder.name <- paste0(deparse(substitute(dat)), suff)
+    
+  }
 
   if (is.null(dat)){
     dat <- read.table(paste0(path, filename),
@@ -56,23 +86,8 @@ MakeBaconDirs <- function(dat = NULL, filename, path,
   })
 
 
-  # create top-level folder name
 
-  suffix <- match.arg(suffix)
-  suff <- switch(suffix,
-                 none = "",
-                 date = paste0("-", Sys.Date()),
-                 date.time = paste0("-", format(Sys.time(), "%Y.%m.%d_%H-%M-%S"))
-  )
-
-  folder.name <- paste0(
-    # remove suffice from filename
-    strsplit(filename, split = ".", fixed = TRUE)[[1]][1],
-    # add current date and time
-    #"-", format(Sys.time(), "%Y.%m.%d_%H-%M-%S")
-    suff
-  )
-
+  
   # create top-level directory named data.file name
   folder.path <- paste0(path, "/", folder.name)
   dir.create(folder.path)
@@ -118,7 +133,7 @@ CreateParameterFiles <- function(top.dir.path, pars.df){
 
     write.csv(pars,
               file = paste0(dir.paths[i], "/", "bacon_pars", ".csv"),
-              row.names = FALSE, quote = FALSE)
+              row.names = FALSE, quote = TRUE)
 
     })
 
@@ -139,6 +154,7 @@ CreateParameterFiles <- function(top.dir.path, pars.df){
 #' @examples
 RunBaconDirs <- function(top.dir.path, runname = "", frac.cores = 0.5){
 
+  # Check platform, do not run in parallel if on Windows
   if (.Platform$OS.type == "unix") {
     n.cores.available <- parallel::detectCores()
     n.cores <- ceiling(n.cores.available * frac.cores)
@@ -154,20 +170,39 @@ RunBaconDirs <- function(top.dir.path, runname = "", frac.cores = 0.5){
     dat <- read.csv(paste0(top.dir.path, i, "/", i, ".csv"))
 
     # read in parameters
-    pars <- read.csv(paste0(top.dir.path, i, "/", "bacon_pars", ".csv"))
+    pars <- read.csv(paste0(top.dir.path, i, "/", "bacon_pars", ".csv"),
+                     stringsAsFactors = FALSE)
+    
+    pars.lst <- c(pars, core = i, coredir = top.dir.path,
+                  # suppress interactive questions
+                  suggest = FALSE, ask = FALSE,
+                  runname = runname, remember = FALSE,
+                  plot.pdf = TRUE, suppress.plots = TRUE,
+                  verbose = FALSE)
+    
+    to.keep <- names(pars.lst) %in% formalArgs(Bacon2)
 
+    pars.lst <- pars.lst[to.keep]
+    
+    # convert potential text strings to numerical
+    pars.lst$acc.mean <- eval(parse(text = pars.lst$acc.mean))
+    
+    if (hasName(pars.lst, "acc.mean")) {
+      pars.lst$acc.mean <- eval(parse(text = pars.lst$acc.mean))
+    }
+    
+    if (hasName(pars.lst, "hiatus.depths")) {
+      pars.lst$hiatus.depths <- eval(parse(text = pars.lst$hiatus.depths))
+    }
+    
+    if (hasName(pars.lst, "boundary")) {
+      pars.lst$boundary <- eval(parse(text = pars.lst$boundary))
+      }
+    
+    
     # call Bacon
-    Bacon2(core = i, coredir = top.dir.path,
-           d.min = pars$d.min, d.max = pars$d.max, d.by = pars$d.by,
-           acc.mean = pars$acc.mean, acc.shape = pars$acc.shape,
-           mem.mean = pars$mem.mean, mem.strength = pars$mem.strength,
-           thick = pars$thick,
-           # suppress interactive questions
-           suggest = FALSE, ask = FALSE,
-           runname = runname, remember = FALSE,
-           plot.pdf = TRUE, suppress.plots = TRUE,
-           verbose = FALSE)
-
+    do.call(Bacon2, pars.lst)
+    
     return(i)
 
   }, mc.cores = n.cores, mc.preschedule = FALSE)
