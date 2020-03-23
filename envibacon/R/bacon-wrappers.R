@@ -91,7 +91,16 @@ MakeBaconDirs <- function(dat = NULL, filename, path,
 }
 
 
-CreateParametersFiles <- function(top.dir.path, pars.df){
+#' Add parameter files to a set of site directories
+#'
+#' @param top.dir.path Path to top level directory for a set of site directories
+#' @param pars.df The dataframe of Bacon parameters
+#'
+#' @return
+#' @export
+#'
+#' @examples
+CreateParameterFiles <- function(top.dir.path, pars.df){
 
   # Get list of directories inside top-level dir
   dirs <- list.dirs(top.dir.path, full.names = FALSE, recursive = FALSE)
@@ -119,6 +128,9 @@ CreateParametersFiles <- function(top.dir.path, pars.df){
 #' Run rbacon::Bacon for data in a set of directories
 #'
 #' @param top.dir.path Top level directory under which are multiple directories
+#' @param frac.cores proportion of cores to use. Defaults to 1/2, do not use a
+#' high value on a shared server 
+#' 
 #' containing input files for Bacon
 #'
 #' @return NULL - has side effects of writing Bacon output to a folder structure.
@@ -217,6 +229,14 @@ AggregateSummaryAgeModels <- function(top.dir.path){
   return(df)
 }
 
+#' Title
+#'
+#' @param top.dir.path 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 AggregateAgeModelsAtDepths <- function(top.dir.path){
 
 
@@ -261,6 +281,13 @@ AggregateAgeModelsAtDepths <- function(top.dir.path){
 }
 
 
+#' Title
+#'
+#' @param age.mod 
+#' @param depth 
+#'
+#' @return
+#' @keywords internal
 GetAgeModAtDepths <- function(age.mod, depth){
 
   interps <- apply(age.mod[,2:5], 2, function(i) {

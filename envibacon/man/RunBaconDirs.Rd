@@ -7,7 +7,11 @@
 RunBaconDirs(top.dir.path, runname = "", frac.cores = 0.5)
 }
 \arguments{
-\item{top.dir.path}{Top level directory under which are multiple directories
+\item{top.dir.path}{Top level directory under which are multiple directories}
+
+\item{frac.cores}{proportion of cores to use. Defaults to 1/2, do not use a
+high value on a shared server 
+
 containing input files for Bacon}
 }
 \value{

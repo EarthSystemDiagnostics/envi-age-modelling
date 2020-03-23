@@ -1,5 +1,10 @@
 # tidyverse packages for general data exploration
 library(tidyverse)
+
+# library(dplyr)
+# library(tidyr)
+# library(ggplot2)
+
 library(lme4)
 
 all.terr.dat <- readr::read_csv2("../working-data/terr_agemodel_data/Dating_Data.csv") %>%
@@ -53,6 +58,7 @@ all.terr.c14.sed.rates <- all.terr.c14.dat.2 %>%
   left_join(all.terr.c14.sed.rates, .) %>%
   mutate(n.date.cat =  cut(n.dates, c(0, 10, Inf)))
 
+
 # Have a look at the sed.rates
 
 all.terr.c14.sed.rates %>%
@@ -70,6 +76,7 @@ all.terr.c14.sed.rates %>%
   facet_wrap(~n.date.cat, scales = "free") +
   scale_x_continuous(trans = "sqrt", breaks = c(1,2,4,8,16, 32, 64, 128, 256))
 
+
 ## Some negative accumulation rates
 # If negative set to bacon default of 20, which is actually close to overall mean.
 
@@ -77,6 +84,8 @@ all.terr.c14.sed.rates <- all.terr.c14.sed.rates %>%
   mutate(yrs_per_cm = ifelse(yrs_per_cm <= 0, 20, yrs_per_cm))
 
 summary(all.terr.c14.sed.rates$yrs_per_cm)
+
+
 
 ## Get d.max and d.min from pollen data
 
@@ -87,7 +96,7 @@ n.dates <- all.terr.c14.dat %>%
             min.14C.depth = min(depth, na.rm = TRUE))
 
 
-pollen.depths.1 <- readxl::read_excel("/Users/andrewdolman/Dropbox/Work/AWI/Data/terrestrial-age-models/Neotoma_C14_with Min_Max_Pollen_2.xlsx")
+pollen.depths.1 <- readxl::read_excel("../working-data/terr_agemodel_data/Neotoma_C14_with Min_Max_Pollen_2.xlsx")
 
 pollen.depths <- pollen.depths.1 %>%
   full_join(., n.dates) %>%
