@@ -1,0 +1,104 @@
+---
+title: "Data exploration"
+author: "Andrew M. Dolman"
+date: "30/03/2020"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+```
+
+# Look at all dating data
+
+```{r}
+# Load all dating data 
+# filter for rows with an age and depth
+# and reorder columns to make visualisation easier
+
+all.terr.dat <- readr::read_csv2("data-raw/Dating_Data.csv") %>% 
+  filter(complete.cases(age, depth)) %>%
+  select(DataName, depth, age, e.older, e.young, age.type, material.dated, everything()) 
+
+all.terr.dat
+```
+
+# Number of dates per site
+
+```{r}
+no.dates <- all.terr.dat %>% 
+  group_by(DataName, age.type) %>% 
+  summarise(n.dates = n())
+
+no.dates
+```
+
+# Sites with a mix of radiocarbon and calendar
+
+```{r}
+no.age.types <- no.dates %>% 
+  group_by(DataName) %>% 
+  mutate(no.age.types = n())%>% 
+  spread(age.type, n.dates) %>% 
+  arrange(desc(no.age.types)) 
+```
+
+### 80 sites with more than 1 age type
+
+```{r}
+no.age.types %>% 
+  filter(no.age.types > 1)
+```
+
+
+### Check depth scale
+
+
+```{r}
+core.length <- all.terr.dat %>% 
+  group_by(DataName, age.type) %>% 
+  summarise(max.depth = max(depth),
+            min.depth = min(depth),
+            core.length = max.depth - min.depth,
+            core.age.range = diff(range(age)),
+            approx.sed.rate = core.age.range / core.length)
+
+hist(core.length$core.length)
+hist(1/core.length$approx.sed.rate)
+
+```
+
+
+
+```{r}
+all.terr.c14.dat <- all.terr.dat %>%
+  filter(age.type == "Radiocarbon years BP") %>%
+  group_by(DataName) %>%
+  mutate(n.dates = n()) %>%
+  ungroup()
+
+# Add a depth and date at surface
+surface.ages <- all.terr.c14.dat %>%
+  ungroup() %>%
+  select(DataName) %>%
+  distinct() %>%
+  mutate(age = 0, depth = 0, sigma.age = 100, sample.id = 0,
+         added.surface = TRUE)
+
+all.terr.c14.dat.2 <- bind_rows(all.terr.c14.dat, surface.ages) %>%
+  ungroup() %>%
+  mutate(added.surface = ifelse(is.na(added.surface), FALSE, TRUE)) %>%
+  #select(DataName, added.surface, everything()) %>%
+  group_by(DataName) %>%
+  mutate(n.dates = median(n.dates, na.rm = TRUE)) %>%
+  ungroup()
+```
+
+
